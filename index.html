@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="SIRA: riego inteligente para condominios y hoteles. Prototipo con datos simulados.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>SIRA Riego</title>
+<meta name="theme-color" content="#2F6B45">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&family=Public+Sans:wght@400;600&display=swap">
+<style>
+/* Layout: one phone-width column (max 480px), fixed bottom tab bar, views switched by hash. Palette from the SIRA pitch deck: forest, mint, amber. Plans gate real features (weather, channels, ESG report). */
+:root{
+  --bg:#F6F5E8; --surface:#E6EEE3; --card:#FFFFFF; --ink:#1C2B21; --muted:#51625A;
+  --line:#D2DBCF; --accent:#2F6B45; --accent-ink:#FFFFFF;
+  --hero-bg:#1C2B21; --hero-fg:#F6F5E8; --hero-mut:#B7C9B9; --hero-hi:#E3A92F; --hero-card:#263A2E;
+  --ok-bg:#CFE3D2; --ok-fg:#1C3A27; --warn-bg:#F6DFA8; --warn-fg:#6B4200; --bad-bg:#F3D3D0; --bad-fg:#7A1F1F;
+  --bar:#3F7A52; --bar-warn:#B7791F; --trad:#9AA89D; --sky:#2F6F8F;
+  --display:'DM Sans',system-ui,Arial,sans-serif; --body:'Public Sans',system-ui,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111B15; --surface:#1B2A21; --card:#16241C; --ink:#E9EFE5; --muted:#A5B6AA;
+  --line:#2B3E31; --accent:#6FBF8A; --accent-ink:#0E1A12;
+  --hero-bg:#0A110D; --hero-fg:#F2F1E4; --hero-mut:#A5B6AA; --hero-hi:#E3A92F; --hero-card:#16241C;
+  --ok-bg:#25402F; --ok-fg:#CFE8D6; --warn-bg:#3A2E10; --warn-fg:#F0C469; --bad-bg:#3B1B19; --bad-fg:#F2A9A3;
+  --bar:#6FBF8A; --bar-warn:#E3A92F; --trad:#5E7164; --sky:#7CC0DD; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111B15; --surface:#1B2A21; --card:#16241C; --ink:#E9EFE5; --muted:#A5B6AA;
+  --line:#2B3E31; --accent:#6FBF8A; --accent-ink:#0E1A12;
+  --hero-bg:#0A110D; --hero-fg:#F2F1E4; --hero-mut:#A5B6AA; --hero-hi:#E3A92F; --hero-card:#16241C;
+  --ok-bg:#25402F; --ok-fg:#CFE8D6; --warn-bg:#3A2E10; --warn-fg:#F0C469; --bad-bg:#3B1B19; --bad-fg:#F2A9A3;
+  --bar:#6FBF8A; --bar-warn:#E3A92F; --trad:#5E7164; --sky:#7CC0DD; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 110px}
+main{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-top:18px}
+h1,h2,h3,p,ul{margin:0}
+h1{font-family:var(--display);font-size:30px;line-height:1.15;text-wrap:balance}
+h2{font-family:var(--display);font-size:19px;line-height:1.25}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.logo{font-family:var(--display);font-weight:700;font-size:24px;letter-spacing:3px;color:var(--accent);text-decoration:none}
+.right{display:flex;gap:8px;align-items:center}
+.chip{font-size:13px;font-weight:600;background:var(--surface);padding:6px 12px;border-radius:999px;color:var(--ink);text-decoration:none;white-space:nowrap}
+.chip.plan{background:var(--accent);color:var(--accent-ink)}
+.sub{color:var(--muted)}
+.hero{background:var(--hero-bg);color:var(--hero-fg);border-radius:22px;padding:22px;display:flex;flex-direction:column;gap:8px}
+.hero .mut{color:var(--hero-mut);font-size:14px}
+.big{font-family:var(--display);font-weight:700;font-size:46px;line-height:1.05;color:var(--hero-hi);font-variant-numeric:tabular-nums}
+.hero-row{display:flex;gap:16px;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat{background:var(--surface);border-radius:16px;padding:14px 8px;text-align:center;color:var(--ink);text-decoration:none;display:block}
+.stat b{display:block;font-family:var(--display);font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+.box{background:var(--surface);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.box.flat{background:var(--card);border:1px solid var(--line)}
+.row{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.pill{font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap}
+.none{background:var(--card);color:var(--muted);border:1px solid var(--line)}
+.ok{background:var(--ok-bg);color:var(--ok-fg)} .warn{background:var(--warn-bg);color:var(--warn-fg)} .bad{background:var(--bad-bg);color:var(--bad-fg)}
+.meter{height:10px;border-radius:999px;background:var(--card);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--bar);transition:width .6s}
+.meter i.w{background:var(--bar-warn)}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+button,.btn{font:inherit;font-weight:600;min-height:44px;padding:10px 16px;border-radius:12px;border:2px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+button[aria-pressed="true"],.primary{background:var(--accent);color:var(--accent-ink)}
+button:focus-visible,input:focus-visible,a:focus-visible,label:focus-within{outline:3px solid var(--hero-hi);outline-offset:2px}
+.small{font-size:13px;color:var(--muted)}
+.sec{font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+.wx-now{display:flex;gap:16px;align-items:center}
+.wx-now .t{font-family:var(--display);font-weight:700;font-size:56px;line-height:1;font-variant-numeric:tabular-nums}
+.wx-now svg{width:64px;height:64px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.facts div{background:var(--card);border-radius:12px;padding:10px;text-align:center;font-size:13px;color:var(--muted)}
+.facts b{display:block;font-size:17px;color:var(--ink);font-variant-numeric:tabular-nums}
+.hours{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.hours div{flex:none;width:58px;background:var(--card);border-radius:12px;padding:8px 4px;text-align:center;font-size:13px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+.hours b{font-size:16px;color:var(--ink)}
+.hours svg,.day svg{width:26px;height:26px}
+.day{display:grid;grid-template-columns:44px 30px 1fr auto;gap:10px;align-items:center;background:var(--card);border-radius:14px;padding:10px 12px}
+.day b{font-variant-numeric:tabular-nums}
+.day .rain{font-size:13px;color:var(--sky);font-weight:600}
+.lock{position:relative;border:2px dashed var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;background:var(--card)}
+.plan{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border-radius:18px;padding:16px 18px;border:2px solid transparent;cursor:pointer}
+.plan:has(input:checked){border-color:var(--accent)}
+.plan input{margin-top:5px;width:20px;height:20px;accent-color:var(--accent);flex:none}
+.plan .price{font-family:var(--display);font-weight:700;font-size:21px;color:var(--accent);white-space:nowrap}
+.plan ul{margin:6px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:340px}
+th,td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:center}
+th:first-child,td:first-child{text-align:left}
+th{font-family:var(--display)} th.cur{color:var(--accent)}
+td .y{color:var(--accent);font-weight:700} td .n{color:var(--muted)}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:14px}
+input[type=text],select{font:inherit;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.alert{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.alert.hot{border:2px solid var(--bar-warn)}
+.alert.read{opacity:.7}
+.sw{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px}
+.sw button{min-width:76px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);
+  padding:6px max(6px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));z-index:5}
+nav div{max-width:480px;margin:0 auto;display:flex}
+nav a{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;position:relative}
+nav a[aria-current="page"]{color:var(--accent)}
+nav a .dot{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--bar-warn);color:#1C2B21;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+@media (prefers-reduced-motion:reduce){.meter i{transition:none}}
+</style>
+
+</head>
+<body>
+<main id="app"></main>
+<nav aria-label="Principal"><div id="tabs"></div></nav>
+
+<script>
+(function(){
+var ORD=['inicio','clima','zonas','alertas','planes'];
+var TABS=[['inicio','Inicio','<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>'],
+['zonas','Zonas','<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'],
+['clima','Clima','<path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5 3.5 3.5 0 0 1 17.5 18z"/>'],
+['alertas','Alertas','<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/>'],
+['planes','Planes','<path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>']];
+var PLANS=[
+ {id:'basico',n:'Básico',p:95000,f:['Riego automático por sensores','Monitoreo remoto de zonas','Soporte base']},
+ {id:'estandar',n:'Estándar',p:103000,f:['Todo lo del Básico','Pronóstico a 7 días con riego automático','Alertas por SMS o WhatsApp']},
+ {id:'premium',n:'Premium',p:201000,f:['Todo lo del Estándar','Reportes de ahorro y ESG','SLA y soporte 24/7']}];
+var RANK={basico:1,estandar:2,premium:3};
+var MATRIX=[['Riego automático por sensores',1,1,1],['Monitoreo remoto de zonas',1,1,1],['Clima actual',1,1,1],['Pronóstico a 7 días',0,1,1],['Riego que se ajusta a la lluvia',0,1,1],['Alertas por SMS o WhatsApp',0,1,1],['Reporte de ahorro de agua',0,0,1],['Reporte ESG',0,0,1],['SLA y soporte 24/7',0,0,1]];
+var DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+/* Pronóstico real de Valparaíso, capturado de Meteored el 27-oct-2026. La fuente no entregaba probabilidad de lluvia diaria. */
+var REAL={'2026-10-28':{tmax:20,tmin:12,k:'sol',c:'Soleado'},'2026-10-29':{tmax:19,tmin:13,k:'nube',c:'Neblina'},'2026-10-30':{tmax:20,tmin:15,k:'parcial',c:'Parcialmente nublado'},'2026-10-31':{tmax:20,tmin:16,k:'parcial',c:'Parcialmente nublado'},'2026-11-1':{tmax:21,tmin:14,k:'parcial',c:'Nubes y claros'},'2026-11-2':{tmax:21,tmin:13,k:'parcial',c:'Nubes y claros'}};
+var S={forceRain:false,zones:[
+ {n:'Zona 1 · Jardín central',h:62,min:45,max:70,by:'',w:false,auto:true,s:2},
+ {n:'Zona 2 · Acceso',h:28,min:40,max:65,by:'',w:false,auto:true,s:2},
+ {n:'Zona 3 · Piscina',h:84,min:50,max:75,by:'',w:false,auto:true,s:2},
+ {n:'Zona 4 · Estacionamientos',h:55,min:35,max:60,by:'',w:false,auto:true,s:2}],
+ read:{}, plan:'estandar', sent:null, ch:{sms:true,wa:true}};
+try{var sv=JSON.parse(localStorage.getItem('sira-state2')||'null'); if(sv){S.plan=sv.plan||S.plan; S.read=sv.read||{}; S.sent=sv.sent||null; S.ch=sv.ch||S.ch;}}catch(e){}
+function save(){try{localStorage.setItem('sira-state2',JSON.stringify({plan:S.plan,read:S.read,sent:S.sent,ch:S.ch}))}catch(e){}}
+function has(min){return RANK[S.plan]>=RANK[min]}
+function money(n){return '$'+Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
+function num(n){return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.')}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+/* Simulated forecast, stable for each calendar day. A live feed needs a server. */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function icon(k){
+ var sun='<circle cx="12" cy="12" r="4" fill="#E3A92F"/><g stroke="#E3A92F" stroke-width="2" stroke-linecap="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></g>';
+ var cl='<path d="M7 19a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 9.5 3.5 3.5 0 0 1 17.5 19z" fill="var(--trad)"/>';
+ var rain='<path d="M7 15a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 5.5 3.5 3.5 0 0 1 17.5 15z" fill="var(--sky)"/><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3" stroke="var(--sky)" stroke-width="2" stroke-linecap="round"/>';
+ var part='<circle cx="9" cy="9" r="3.5" fill="#E3A92F"/>'+'<path d="M8 20a3.5 3.5 0 0 1-.4-6.98A5 5 0 0 1 17 12.5 3.2 3.2 0 0 1 17.2 20z" fill="var(--trad)"/>';
+ return '<svg viewBox="0 0 24 24" aria-hidden="true">'+({sol:sun,nube:cl,lluvia:rain,parcial:part}[k]||sun)+'</svg>';}
+function forecast(){var d0=new Date(),base=d0.getFullYear()*400+Math.floor((d0-new Date(d0.getFullYear(),0,0))/864e5),out=[];
+ for(var i=0;i<7;i++){var r=rng(base*31+i*7919),d=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+i);
+  var tmax=15+Math.round(r()*10),tmin=tmax-6-Math.round(r()*3),pop=r()<0.35?60+Math.round(r()*35):Math.round(r()*45);
+  var rl=REAL[d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()];if(rl){tmax=rl.tmax;tmin=rl.tmin;pop=0}
+  if(i===0&&S.forceRain){pop=85;rl=null}
+  var k=rl?rl.k:(pop>=60?'lluvia':pop>=30?'nube':tmax>=23?'sol':'parcial');
+  var dec=pop>=60?{t:'Suspendido',f:0,c:'ok'}:pop>=30?{t:'Reducido',f:.5,c:'warn'}:tmax>=24?{t:'Reforzado',f:1.1,c:'warn'}:{t:'Normal',f:1,c:'ok'};
+  out.push({d:i===0?'Hoy':DAYS[d.getDay()],tmax:tmax,tmin:tmin,pop:pop,k:k,dec:dec,real:!!rl,c:rl?rl.c:''});}
+ return out;}
+function nowWx(f){var h=new Date().getHours()+new Date().getMinutes()/60,t=f.tmin+(f.tmax-f.tmin)*(0.5-0.5*Math.cos((h-4)/24*2*Math.PI*1.0));
+ return {t:Math.round(t),hum:Math.round(85-(t-10)*2.2+(f.pop/10)),wind:8+Math.round(f.pop/12),uv:Math.max(0,Math.round(8*Math.sin(Math.max(0,(h-6.5))/13*Math.PI)))};}
+function hourly(f){var out=[],h0=new Date().getHours();for(var i=0;i<12;i++){var h=(h0+i)%24,t=Math.round(f.tmin+(f.tmax-f.tmin)*(0.5-0.5*Math.cos((h-4)/24*2*Math.PI)));
+ var p=f.real?0:Math.max(0,Math.min(95,f.pop+((i*37+h*13)%21)-10));out.push({h:(h<10?'0':'')+h+':00',t:t,p:p,k:p>=60?'lluvia':(h<7||h>=20)?'nube':f.pop>=30?'nube':'sol'});}return out;}
+function report(fc){var tr=0,si=0,rows=fc.map(function(x,i){var trad=i%2===0?curLoc().area*4:0,sira=Math.round(trad*0.7*x.dec.f);tr+=trad;si+=sira;return {d:x.d,tr:trad,si:sira};});return {rows:rows,tr:tr,si:si,saved:tr-si,pct:tr?Math.round((tr-si)/tr*100):0};}
+function zst(z){ if(z.nodata) return ['Sin sensores','none']; if(z.w) return [z.by==='auto'?'Regando (auto)':'Regando','ok']; if(z.h>80) return ['Revisar','bad']; if(z.h<z.min){ return (z.auto&&has('estandar')&&forecast()[0].dec.f===0)?['En pausa por lluvia','warn']:['Seca','warn']; } if(z.h>z.max) return ['Húmeda','ok']; return ['Óptima','ok']; }
+function alerts(){var fc=forecast(),a=[]; S.zones.forEach(function(z,i){ if(!z.w&&z.h>80) a.push({id:'fuga'+i,tag:'Posible fuga',cls:'warn',when:'Ahora',t:'Humedad anormal en '+z.n.split(' · ')[0],d:'Se mantiene sobre el 80% fuera del horario de riego. Conviene revisar la válvula.',hot:true,ch:'wa'});});
+ if(has('estandar')&&fc[0].dec.f===0) a.push({id:'lluvia',tag:'Pronóstico',cls:'ok',when:'Hoy',t:'Riego suspendido por lluvia',d:'Probabilidad de lluvia de '+fc[0].pop+'% hoy. Las zonas en modo automático no riegan.',ch:'sms'});
+ if(isDemo())a.push({id:'bat',tag:'Sensor',cls:'ok',when:'Hace 3 días',t:'Batería solar baja en sensor 5',d:'Varios días nublados seguidos. Se programa una revisión.',ch:'sms'});
+ return a;}
+function unread(){return alerts().filter(function(a){return !S.read[a.id]}).length}
+function lockBox(title,text,need){var p=PLANS.filter(function(x){return x.id===need})[0];return '<div class="lock"><span class="pill warn" style="align-self:flex-start">Incluido en '+p.n+'</span><h2>'+title+'</h2><p class="sub" style="font-size:14px">'+text+'</p><div class="btns"><button data-a="plan" data-id="'+need+'" class="primary">Probar plan '+p.n+'</button><a class="btn" href="#planes">Ver planes</a></div></div>';}
+var HEAD=function(chip){if(!isDemo()&&(chip==='Datos de ejemplo'||chip==='Simulación'))chip='Sensores simulados';return '<div class="top"><a class="logo" href="#inicio">SIRA</a><div class="right"><span class="chip">'+chip+'</span><a class="chip plan" href="#planes" aria-label="Plan actual">'+PLANS.filter(function(p){return p.id===S.plan})[0].n+'</a></div></div>';};
+var V={
+inicio:function(){var fc=forecast(),t=fc[0],n=unread(),opt=S.zones.filter(function(z){var s0=zst(z)[0];return s0==='Óptima'||s0==='Húmeda'||s0.indexOf('Regando')===0}).length,C=2*Math.PI*30,rp=report(fc);return ''+
+ HEAD('Datos de ejemplo')+
+ '<div><h1>Buenos días</h1><p class="sub">'+esc(curLoc().name)+' · '+num(curLoc().area)+' m²</p></div>'+
+ '<div class="hero"><div class="hero-row"><svg width="84" height="84" viewBox="0 0 84 84" role="img" aria-label="'+opt+' de 4 zonas en buen estado"><circle cx="42" cy="42" r="30" fill="none" stroke="var(--hero-card)" stroke-width="10"/><circle cx="42" cy="42" r="30" fill="none" stroke="var(--hero-hi)" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+(C*opt/S.zones.length)+' '+C+'" transform="rotate(-90 42 42)"/><text x="42" y="48" text-anchor="middle" font-size="20" font-weight="700" fill="var(--hero-fg)" font-family="DM Sans">'+opt+'/'+S.zones.length+'</text></svg>'+
+ '<div><p class="mut">Zonas en buen estado</p><p class="big">'+(has('premium')?num(rp.saved)+' L':'$225.000')+'</p><p class="mut">'+(has('premium')?'de agua ahorrada esta semana (estimado)':'ahorro estimado del mes (modelo)')+'</p></div></div></div>'+
+ '<a class="box" href="#clima" style="text-decoration:none;color:inherit"><div class="row"><span class="sec">Hoy en el condominio</span><span class="pill '+t.dec.c+'">Riego '+t.dec.t.toLowerCase()+'</span></div><div class="wx-now" style="gap:12px">'+icon(t.k)+'<div><b style="font-size:20px">'+t.tmin+'° a '+t.tmax+'°</b><p class="sub" style="font-size:14px">'+(t.real?'Sin lluvia prevista · '+t.c:'Probabilidad de lluvia '+t.pop+'%')+'</p></div></div></a>'+
+ '<div class="stats"><div class="stat"><b>4</b><span>Zonas</span></div><div class="stat"><b>8</b><span>Sensores</span></div><a class="stat" href="#alertas"><b>'+n+'</b><span>Alertas nuevas</span></a></div>'+
+ '<div class="box"><span class="sec">Próximo riego</span><p>Zona 2 · '+(t.dec.f===0?'se reprograma por lluvia':'hoy, 20:00')+'</p></div>'+
+ '<a class="btn" href="#reportes">Ver reporte de ahorro'+(has('premium')?'':' (Premium)')+'</a>';},
+zonas:function(){return ''+HEAD('Simulación')+
+ '<div><h1>Zonas de riego</h1><p class="sub">Humedad del suelo según los sensores solares. Los valores cambian en vivo como demostración.</p></div>'+'<div class="box flat"><span class="sec">Cómo funciona el riego automático</span><p style="font-size:15px">Los sensores miden la humedad del suelo de cada zona. Un controlador instalado en el terreno compara esa medición con el rango óptimo y abre o cierra la válvula solo, aunque el teléfono esté apagado.</p><p style="font-size:15px">La app muestra lo que pasa y te deja regar a mano o apagar el modo automático. En esta demostración, la app simula ese controlador.</p></div>'+
+ S.zones.map(function(z,i){var s=zst(z);return '<div class="box"><div class="row"><h2>'+esc(z.n)+'</h2><span class="pill '+s[1]+'">'+s[0]+'</span></div>'+
+ '<div class="meter" role="img" aria-label="Humedad '+Math.round(z.h)+' por ciento"><i class="'+(z.h<z.min?'w':'')+'" style="width:'+Math.round(z.h)+'%"></i></div>'+
+ '<p class="small">Humedad '+Math.round(z.h)+'% · rango óptimo '+z.min+'–'+z.max+'% · '+z.s+' sensores</p><p class="small">'+(z.auto?'Automático: riega si baja de '+z.min+'% y se detiene al llegar a '+z.max+'%.':'Automático apagado: solo riega cuando tú lo ordenas.')+'</p>'+
+ '<div class="btns"><button data-a="water" data-i="'+i+'" aria-pressed="'+z.w+'">'+(z.w?'Detener riego':'Regar ahora')+'</button>'+
+ '<button data-a="auto" data-i="'+i+'" aria-pressed="'+z.auto+'">Automático: '+(z.auto?'sí':'no')+'</button></div></div>';}).join('');},
+clima:function(){var fc=forecast(),t=fc[0],w=nowWx(t),hr=hourly(t);return ''+HEAD('Pronóstico real')+
+ '<div><h1>Clima</h1><p class="sub">'+esc(curLoc().name)+', Valparaíso</p></div>'+
+ '<div class="box"><div class="wx-now">'+icon(t.k)+'<div><p class="t">'+w.t+'°</p><p class="sub">Máx '+t.tmax+'° · Mín '+t.tmin+'°</p></div></div>'+
+ '<div class="facts"><div><b>'+w.hum+'%</b>Humedad aire</div><div><b>'+w.wind+' km/h</b>Viento</div><div><b>'+w.uv+'</b>Índice UV</div></div></div>'+
+ (has('estandar')?
+ '<div class="box"><div class="row"><span class="sec">Decisión de riego hoy</span><span class="pill '+t.dec.c+'">'+t.dec.t+'</span></div><p style="font-size:15px">'+(t.dec.f===0?'Hay '+t.pop+'% de probabilidad de lluvia. SIRA suspende el riego automático y evita gastar agua.':t.dec.f<1?'Hay '+t.pop+'% de probabilidad de lluvia. SIRA reduce el riego a la mitad.':t.dec.f>1?'Calor de '+t.tmax+'°. SIRA refuerza el riego en las zonas que lo necesiten.':'Sin lluvia prevista. El riego sigue el horario según la humedad del suelo.')+'</p>'+
+ '<button data-a="rain" aria-pressed="'+S.forceRain+'">Simular lluvia hoy (demo)</button></div>'+
+ '<span class="sec">Próximas horas</span><div class="hours">'+hr.map(function(x){return '<div>'+x.h+icon(x.k)+'<b>'+x.t+'°</b><span style="color:var(--sky)">'+x.p+'%</span></div>'}).join('')+'</div>'+
+ '<span class="sec">Próximos 7 días</span>'+fc.map(function(x){return '<div class="day"><b>'+x.d+'</b>'+icon(x.k)+'<span><b>'+x.tmax+'°</b> <span class="sub">'+x.tmin+'°</span> <span class="rain">'+(x.real?x.c:x.pop+'% (sim.)')+'</span></span><span class="pill '+x.dec.c+'">'+x.dec.t+'</span></div>'}).join('')
+ : lockBox('Pronóstico a 7 días y riego que se ajusta a la lluvia','Con Estándar, SIRA lee el pronóstico y suspende o reduce el riego cuando va a llover, además de refuerzarlo en días de calor.','estandar'))+
+ '<p class="small">Pronóstico de Valparaíso tomado de Meteored (captura del 27 de octubre, no se actualiza solo). Los días sin captura se simulan. La temperatura de ahora se calcula con la mínima y la máxima del día, y la fuente no entregaba probabilidad de lluvia, por eso se asume sin lluvia. El botón de simulación permite probar el caso de lluvia. En la versión real, un servidor actualiza el pronóstico cada hora.</p>';},
+alertas:function(){return ''+HEAD('Datos de ejemplo')+
+ '<div><h1>Alertas</h1><p class="sub">'+(has('estandar')?'Te avisamos por los canales que actives.':'En el plan Básico las alertas se ven solo dentro de la app.')+'</p></div>'+
+ (has('estandar')?'<div class="box"><span class="sec">Canales de aviso</span>'+
+ '<div class="sw"><span>SMS</span><button data-a="ch" data-id="sms" aria-pressed="'+S.ch.sms+'">'+(S.ch.sms?'Activo':'Apagado')+'</button></div>'+
+ '<div class="sw"><span>WhatsApp</span><button data-a="ch" data-id="wa" aria-pressed="'+S.ch.wa+'">'+(S.ch.wa?'Activo':'Apagado')+'</button></div>'+
+ '<label class="f" for="ph">Teléfono para SMS y WhatsApp<input type="text" inputmode="tel" id="ph" autocomplete="tel" placeholder="+56 9 1234 5678" value="'+esc(S.phoneDraft!==undefined?S.phoneDraft:S.phone)+'"></label><div class="btns"><button data-s="phone-save" class="primary">Guardar número</button></div><p class="small" role="status" id="ph-msg">'+(S.phone?'Los avisos llegarán a '+esc(S.phone)+'.':'Escribe el número que recibirá los avisos.')+'</p>'+'<p class="small">Demostración: en esta versión no se envían mensajes reales.</p></div>':lockBox('Alertas por SMS o WhatsApp','Recibe el aviso de una fuga o falla en tu teléfono, aunque no tengas la app abierta.','estandar'))+
+ alerts().map(function(a){var r=S.read[a.id],chn=a.ch==='wa'?'WhatsApp':'SMS',on=has('estandar')&&S.ch[a.ch];return '<div class="alert'+(a.hot&&!r?' hot':'')+(r?' read':'')+'"><div class="row"><span class="pill '+a.cls+'">'+a.tag+'</span><span class="small">'+a.when+'</span></div><h2>'+a.t+'</h2><p class="sub" style="font-size:14px">'+a.d+'</p><div class="row"><span class="small">'+(on?'Aviso por '+chn+(S.phone?' al '+esc(S.phone):''):'Solo en la app')+'</span>'+(r?'<span class="small">Leída</span>':'<button data-a="read" data-id="'+a.id+'">Marcar como leída</button>')+'</div></div>';}).join('')+
+ (has('premium')?'<div class="box"><span class="sec">Soporte 24/7</span><p style="font-size:15px">Tu plan Premium incluye soporte las 24 horas y un SLA con tiempos de respuesta definidos por contrato.</p><p class="small">Contacto de soporte: por definir.</p></div>':'');},
+reportes:function(){var fc=forecast(),rp=report(fc);if(!has('premium')) return HEAD('Premium')+'<div><h1>Reporte de ahorro</h1></div>'+lockBox('Reporte de ahorro de agua y reporte ESG','Compara cada semana el riego tradicional con el de SIRA y descarga evidencia para tus certificaciones ambientales.','premium');
+ var W=340,H=170,max=Math.max(1000,curLoc().area*4*1.1),bw=14,g=(W-20)/7;var bars=rp.rows.map(function(r,i){var x=10+i*g+(g-bw*2-3)/2,h1=Math.round(r.tr/max*110),h2=Math.round(r.si/max*110);
+  return '<rect x="'+x+'" y="'+(130-h1)+'" width="'+bw+'" height="'+h1+'" rx="3" fill="var(--trad)"/><rect x="'+(x+bw+3)+'" y="'+(130-h2)+'" width="'+bw+'" height="'+h2+'" rx="3" fill="var(--bar)"/><text x="'+(x+bw+1)+'" y="150" text-anchor="middle">'+r.d+'</text>';}).join('');
+ return HEAD('Estimación de ejemplo')+'<div><h1>Reporte de ahorro</h1><p class="sub">Próximos 7 días según el pronóstico simulado.</p></div>'+
+ '<div class="hero"><p class="mut">Agua ahorrada con SIRA</p><p class="big">'+num(rp.saved)+' L</p><p class="mut">'+rp.pct+'% menos que el riego tradicional ('+num(rp.tr)+' L contra '+num(rp.si)+' L)</p></div>'+
+ '<div class="box flat"><svg class="chart" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Litros por día, riego tradicional contra SIRA"><line x1="10" y1="130" x2="'+(W-10)+'" y2="130" stroke="var(--line)"/><text x="10" y="14">Litros por día</text>'+bars+'</svg><div class="legend"><span><i style="background:var(--trad)"></i>Riego tradicional</span><span><i style="background:var(--bar)"></i>SIRA</span></div></div>'+
+ '<div class="box"><span class="sec">Reporte ESG</span><p style="font-size:15px">Esta sección reúne el agua ahorrada, la cantidad de alertas atendidas y la evidencia de monitoreo para certificaciones ambientales.</p><p class="small">Supuestos de ejemplo: '+num(curLoc().area)+' m², 4 L/m² por riego, riego tradicional en días alternos y riego por sensores equivalente al 70% del tradicional. Se reemplazan con datos medidos en un piloto real.</p></div>';},
+planes:function(){var pl=PLANS.filter(function(p){return p.id===S.plan})[0];return ''+HEAD('Precios referenciales')+
+ '<div><h1>Elige tu plan</h1><p class="sub">Al elegir uno, la app activa lo que ese plan incluye.</p></div>'+
+ '<form id="planform" style="display:flex;flex-direction:column;gap:12px">'+PLANS.map(function(p){return '<label class="plan"><input type="radio" name="plan" value="'+p.id+'"'+(p.id===S.plan?' checked':'')+'><span style="flex:1"><span class="row"><b style="font-family:var(--display);font-size:20px">'+p.n+'</b><span class="price">'+money(p.p)+'<span class="small">/mes</span></span></span><ul>'+p.f.map(function(f){return '<li>'+f+'</li>'}).join('')+'</ul></span></label>';}).join('')+'</form>'+
+ '<div class="box"><span class="sec">Qué incluye cada plan</span><div class="tablewrap"><table><thead><tr><th></th>'+PLANS.map(function(p){return '<th'+(p.id===S.plan?' class="cur"':'')+'>'+p.n+'</th>'}).join('')+'</tr></thead><tbody>'+
+ MATRIX.map(function(r){return '<tr><td>'+r[0]+'</td>'+[1,2,3].map(function(i){return '<td>'+(r[i]?'<span class="y" aria-label="Incluido">✓</span>':'<span class="n" aria-label="No incluido">–</span>')+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div></div>'+
+ '<div class="box"><div class="row"><span>Plan elegido</span><b>'+pl.n+' · '+money(pl.p)+'/mes</b></div><div class="row"><span>Instalación (pago inicial)</span><b>'+money(1234000)+'</b></div><p class="small">Valores referenciales, por validar con clientes y cotizaciones.</p></div>'+
+ '<form id="demo" class="box" novalidate><h2>Solicitar una demostración</h2>'+
+ '<label class="f" for="nm">Nombre<input type="text" id="nm" autocomplete="name"></label>'+
+ '<label class="f" for="ct">Teléfono o correo<input type="text" id="ct" autocomplete="off"></label>'+
+ '<button class="primary" type="submit">Guardar solicitud</button>'+
+ '<p class="small" role="status">'+(S.sent?'Solicitud guardada en este dispositivo para '+esc(S.sent)+'. En esta versión de prueba aún no se envía al equipo.':'En esta versión de prueba la solicitud queda solo en tu dispositivo.')+'</p></form>'+
+ '<a class="btn" href="#empresa">Sobre SIRA y financiamiento</a>';},
+empresa:function(){return ''+HEAD('En constitución')+
+ '<div><h1>Sobre SIRA</h1><p class="sub">Riego inteligente para condominios y hoteles, para ahorrar agua y bajar costos.</p></div>'+
+ '<div class="hero"><p class="sec" style="color:var(--hero-hi)">Equipo</p><p>Bastián, Joaquín, Etihel, Oscar y Vanderlei · Grupo 5, INACAP Valparaíso</p></div>'+
+ '<h2>Financiamiento previsto</h2>'+
+ '<div class="box"><b>CORFO · Semilla Inicia</b><p class="sub" style="font-size:14px">Prototipo, sensores y válvulas, y pilotos.</p></div>'+
+ '<div class="box"><b>SERCOTEC · Capital Semilla Emprende</b><p class="sub" style="font-size:14px">Puesta en marcha, equipamiento y primeros servicios.</p></div>'+
+ '<div class="box"><b>Broota · capital privado</b><p class="sub" style="font-size:14px">Para escalar después de validar con clientes.</p></div>'+
+ '<p class="small">Montos y requisitos por confirmar en las bases vigentes de cada fondo. Esta app es un prototipo con datos simulados.</p>';}
+};
+S.range='semana';S.as={agua:1500,kwh:0.5,luz:150};
+function fm(x){return (Math.round(x*10)/10).toString().replace('.',',')}
+V._full=function(){var fc=forecast(),t=fc[0],n=unread(),rp=report(fc),r0=rp.rows[0],R=S.range,
+ L=R==='hoy'?r0.tr-r0.si:R==='mes'?rp.saved*30/7:rp.saved,
+ base=R==='hoy'?r0.tr:R==='mes'?rp.tr*30/7:rp.tr,
+ pct=base?Math.round(L/base*100):0,m3=L/1000,din=m3*S.as.agua,kwh=m3*S.as.kwh,luz=kwh*S.as.luz,
+ opt=S.zones.filter(function(z){return zst(z)[1]==='ok'}).length,C=2*Math.PI*30,
+ lab={hoy:'hoy (estimado)',semana:'esta semana (estimado)',mes:'este mes (proyección)'}[R];
+ return HEAD('Datos de ejemplo')+
+ '<div><h1>Buenos días</h1><p class="sub">'+esc(curLoc().name)+' · '+num(curLoc().area)+' m²</p></div>'+
+ '<div class="hero"><div class="btns" role="group" aria-label="Periodo">'+[['hoy','Hoy'],['semana','Semana'],['mes','Mes']].map(function(x){return '<button data-a="range" data-id="'+x[0]+'" aria-pressed="'+(R===x[0])+'" style="min-height:40px;padding:6px 14px;border-color:var(--hero-hi);'+(R===x[0]?'background:var(--hero-hi);color:#1C2B21':'color:var(--hero-hi)')+'">'+x[1]+'</button>'}).join('')+'</div>'+
+ '<p class="mut">Agua ahorrada '+lab+'</p><p class="big">'+num(L)+' L</p><p class="mut">'+pct+'% menos que un riego tradicional con temporizador.</p></div>'+
+ '<div class="stats"><div class="stat"><b>'+money(din)+'</b><span>Agua en dinero</span></div><div class="stat"><b>'+fm(kwh)+' kWh</b><span>Luz de la bomba · '+money(luz)+'</span></div><div class="stat"><b>'+pct+'%</b><span>Menos agua</span></div></div>'+
+ '<div class="box"><div class="hero-row" style="gap:14px"><svg width="84" height="84" viewBox="0 0 84 84" role="img" aria-label="'+opt+' de '+S.zones.length+' zonas en rango"><circle cx="42" cy="42" r="30" fill="none" stroke="var(--card)" stroke-width="10"/><circle cx="42" cy="42" r="30" fill="none" stroke="var(--bar)" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+(C*opt/S.zones.length)+' '+C+'" transform="rotate(-90 42 42)"/><text x="42" y="48" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)" font-family="DM Sans">'+opt+'/'+S.zones.length+'</text></svg>'+
+ '<div><span class="sec">Zonas en rango</span><p style="font-size:14px">Cuenta las zonas cuya humedad está dentro de su rango óptimo o que se están regando. Las otras necesitan atención.</p></div></div>'+
+ S.zones.map(function(z){var s=zst(z);return '<a href="#zonas" style="display:flex;justify-content:space-between;align-items:center;gap:8px;text-decoration:none;color:inherit;min-height:44px;border-top:1px solid var(--line)"><span style="font-size:15px">'+esc(z.n)+'</span><span class="pill '+s[1]+'">'+s[0]+'</span></a>'}).join('')+'</div>'+
+ '<a class="box" href="#clima" style="text-decoration:none;color:inherit"><div class="row"><span class="sec">Hoy en el condominio</span><span class="pill '+t.dec.c+'">Riego '+t.dec.t.toLowerCase()+'</span></div><div class="wx-now" style="gap:12px">'+icon(t.k)+'<div><b style="font-size:20px">'+t.tmin+'° a '+t.tmax+'°</b><p class="sub" style="font-size:14px">'+(t.real?'Sin lluvia prevista · '+t.c:'Probabilidad de lluvia '+t.pop+'%')+'</p></div></div></a>'+
+ '<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat"><b>'+S.zones.reduce(function(a,z){return a+(parseInt(z.s,10)||0)},0)+'</b><span>Sensores activos</span></div><a class="stat" href="#alertas"><b>'+n+'</b><span>Alertas nuevas</span></a></div>'+
+ '<div class="box flat"><span class="sec">Supuestos del cálculo (editables)</span>'+
+ '<label class="f" for="as1">Precio del agua ($ por m³)<input type="text" inputmode="decimal" id="as1" data-as="agua" value="'+fm(S.as.agua)+'"></label>'+
+ '<label class="f" for="as2">Energía de la bomba (kWh por m³)<input type="text" inputmode="decimal" id="as2" data-as="kwh" value="'+fm(S.as.kwh)+'"></label>'+
+ '<label class="f" for="as3">Precio de la luz ($ por kWh)<input type="text" inputmode="decimal" id="as3" data-as="luz" value="'+fm(S.as.luz)+'"></label>'+
+ '<p class="small">Valores de ejemplo, no son tarifas reales. Los litros salen del pronóstico simulado y de los supuestos del reporte (5.000 m², 4 L/m², riego por sensores al 70% del tradicional). Cambia estos números y se recalcula.</p></div>'+
+ '<a class="btn" href="#reportes">Ver reporte de ahorro'+(has('premium')?'':' (Premium)')+'</a>';};
+V.inicio=function(){if(has('premium'))return V._full();
+ var fc=forecast(),t=fc[0],n=unread(),rp=report(fc),est=has('estandar'),opt=S.zones.filter(function(z){return zst(z)[1]==='ok'}).length,C=2*Math.PI*30;
+ return HEAD('Datos de ejemplo')+
+ '<div><h1>Buenos días</h1><p class="sub">'+esc(curLoc().name)+' · '+num(curLoc().area)+' m²</p></div>'+
+ (est?'<div class="hero"><p class="mut">Agua ahorrada esta semana (estimado)</p><p class="big">'+num(rp.saved)+' L</p><p class="mut">'+rp.pct+'% menos que un riego tradicional con temporizador.</p></div>'+lockBox('Dinero, energía y más periodos','Con Premium ves el ahorro de hoy, de la semana y del mes, lo conviertes en dinero y en energía de la bomba, y editas los supuestos.','premium'):lockBox('Agua ahorrada con SIRA','Con Estándar ves cuánta agua ahorras cada semana al ajustar el riego al pronóstico de lluvia.','estandar'))+
+ '<div class="box"><div class="hero-row" style="gap:14px"><svg width="84" height="84" viewBox="0 0 84 84" role="img" aria-label="'+opt+' de '+S.zones.length+' zonas en rango"><circle cx="42" cy="42" r="30" fill="none" stroke="var(--card)" stroke-width="10"/><circle cx="42" cy="42" r="30" fill="none" stroke="var(--bar)" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+(C*opt/S.zones.length)+' '+C+'" transform="rotate(-90 42 42)"/><text x="42" y="48" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)" font-family="DM Sans">'+opt+'/'+S.zones.length+'</text></svg>'+
+ '<div><span class="sec">Zonas en rango</span><p style="font-size:14px">Cuenta las zonas cuya humedad está dentro de su rango óptimo o que se están regando. Las otras necesitan atención.</p></div></div>'+
+ S.zones.map(function(z){var s=zst(z);return '<a href="#zonas" style="display:flex;justify-content:space-between;align-items:center;gap:8px;text-decoration:none;color:inherit;min-height:44px;border-top:1px solid var(--line)"><span style="font-size:15px">'+esc(z.n)+'</span><span class="pill '+s[1]+'">'+s[0]+'</span></a>'}).join('')+'</div>'+
+ '<a class="box" href="#clima" style="text-decoration:none;color:inherit"><div class="row"><span class="sec">Hoy en el condominio</span>'+(est?'<span class="pill '+t.dec.c+'">Riego '+t.dec.t.toLowerCase()+'</span>':'')+'</div><div class="wx-now" style="gap:12px">'+icon(t.k)+'<div><b style="font-size:20px">'+t.tmin+'° a '+t.tmax+'°</b><p class="sub" style="font-size:14px">'+(est?(t.real?'Sin lluvia prevista · '+t.c:'Probabilidad de lluvia '+t.pop+'%'):'Pronóstico y riego según lluvia: plan Estándar')+'</p></div></div></a>'+
+ '<div class="stats" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="stat"><b>'+S.zones.reduce(function(a,z){return a+(parseInt(z.s,10)||0)},0)+'</b><span>Sensores activos</span></div><a class="stat" href="#alertas"><b>'+n+'</b><span>Alertas nuevas</span></a></div>'+
+ (est?'<a class="btn" href="#reportes">Ver reporte de ahorro (Premium)</a>':'');};
+/* ===== Ubicaciones: la demostración queda fija y se pueden agregar ubicaciones propias ===== */
+var DEMO={id:'demo',name:'Condominio de ejemplo',type:'Condominio',addr:'Valparaíso',area:5000,demo:true};
+var DEMOZ=S.zones;S.locs=[];S.cur='demo';S.draft=null;S.delId=null;
+function curLoc(){if(S.cur!=='demo'){for(var i=0;i<S.locs.length;i++){if(S.locs[i].id===S.cur)return S.locs[i]}}return DEMO}
+function isDemo(){return curLoc().demo===true}
+function mkZones(zs){return zs.map(function(z,i){var mn=[45,40,50,35][i%4],h=[62,33,58,70,48][i%5];return {n:z.n,s:z.s,nodata:false,h:h,min:mn,max:mn+25,w:false,auto:true,by:''}})}
+function applyCur(){S.zones=isDemo()?DEMOZ:curLoc().zones}
+function persistLocs(){try{localStorage.setItem('sira-locs',JSON.stringify({cur:S.cur,locs:S.locs.map(function(l){return {id:l.id,name:l.name,type:l.type,addr:l.addr,area:l.area,zones:l.zones.map(function(z){return {n:z.n,s:z.s}})}})}))}catch(e){}}
+try{var lv=JSON.parse(localStorage.getItem('sira-locs')||'null');if(lv&&lv.locs){S.locs=lv.locs.map(function(l){l.zones=mkZones(l.zones);return l});S.cur=lv.cur||'demo'}}catch(e){}
+applyCur();
+function sumS(l){return l.zones.reduce(function(a,z){return a+(parseInt(z.s,10)||0)},0)}
+function pnum(v){var x=parseFloat(String(v).replace(/\./g,'').replace(',','.'));return isFinite(x)?x:NaN}
+function locBar(){var L=curLoc();return '<a class="box flat" href="#ubicaciones" style="text-decoration:none;color:inherit;flex-direction:row;align-items:center;justify-content:space-between;padding:12px 16px"><span style="font-size:14px;min-width:0"><span class="small">Ubicación</span><br><b>'+esc(L.name)+'</b></span><span class="pill '+(L.demo?'warn':'ok')+'">'+(L.demo?'Demostración':'Mi proyecto')+' · Cambiar</span></a>';}
+function newDraft(l){return l?{id:l.id,name:l.name,type:l.type,addr:l.addr,area:String(l.area),zones:l.zones.map(function(z){return {n:z.n,s:String(z.s)}})}:{id:null,name:'',type:'Condominio',addr:'',area:'',zones:[{n:'Zona 1',s:'2'},{n:'Zona 2',s:'2'}]};}
+function totText(d){var s=d.zones.reduce(function(a,z){return a+(parseInt(z.s,10)||0)},0),a=pnum(d.area);return 'Zonas: '+d.zones.length+' · Sensores previstos: '+s+((a>0)?' · Referencia: '+Math.ceil(a/625)+' sensores en total (1 cada 625 m², como en el ejemplo). Se ajusta con una visita técnica.':'');}
+function syncDraft(){var d=S.draft;if(!d)return;var g=function(id){var e=document.getElementById(id);return e?e.value:null};
+ if(g('d-name')!==null){d.name=g('d-name');d.type=g('d-type');d.addr=g('d-addr');d.area=g('d-area')}
+ d.zones.forEach(function(z,i){var a=g('dz-n'+i),b=g('dz-s'+i);if(a!==null){z.n=a;z.s=b}});
+ var t=document.getElementById('d-tot');if(t)t.textContent=totText(d);}
+function formView(){var d=S.draft,types=['Condominio','Hotel','Edificio corporativo','Parque o complejo deportivo','Otro'];return ''+HEAD('Ubicación')+
+ '<div><h1>'+(d.id?'Editar ubicación':'Nueva ubicación')+'</h1><p class="sub">Escribe las medidas reales de tu proyecto. Los sensores se simulan hasta que instales los reales, y no se mezcla con la demostración.</p></div>'+
+ '<form id="locform" class="box" novalidate>'+
+ '<label class="f" for="d-name">Nombre de la ubicación<input type="text" id="d-name" value="'+esc(d.name)+'" autocomplete="off"></label>'+
+ '<label class="f" for="d-type">Tipo<select id="d-type">'+types.map(function(t){return '<option'+(t===d.type?' selected':'')+'>'+t+'</option>'}).join('')+'</select></label>'+
+ '<label class="f" for="d-addr">Dirección o comuna<input type="text" id="d-addr" value="'+esc(d.addr)+'" autocomplete="off"></label>'+
+ '<label class="f" for="d-area">Superficie regada (m²)<input type="text" inputmode="numeric" id="d-area" value="'+esc(d.area)+'" autocomplete="off"></label>'+
+ '<span class="sec">Zonas y sensores</span>'+
+ d.zones.map(function(z,i){return '<div style="display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:8px;align-items:end"><label class="f" for="dz-n'+i+'">Nombre de la zona '+(i+1)+'<input type="text" id="dz-n'+i+'" value="'+esc(z.n)+'" autocomplete="off"></label><label class="f" for="dz-s'+i+'">Sensores<input type="text" inputmode="numeric" id="dz-s'+i+'" value="'+esc(z.s)+'" autocomplete="off"></label></div>'+(d.zones.length>1?'<button type="button" data-l="zone-rm" data-i="'+i+'" style="min-height:40px;padding:6px 12px;align-self:flex-start">Quitar zona '+(i+1)+'</button>':'')}).join('')+
+ '<button type="button" data-l="zone-add">Agregar zona</button>'+
+ '<p class="small" id="d-tot">'+totText(d)+'</p>'+
+ '<div class="btns"><button type="button" class="primary" data-l="loc-save">Guardar ubicación</button><button type="button" data-l="loc-cancel">Cancelar</button></div>'+
+ '<p class="small" role="status" id="d-msg"></p></form>';}
+V.ubicaciones=function(){if(S.draft)return formView();
+ var h=HEAD('Ubicaciones')+'<div><h1>Ubicaciones</h1><p class="sub">Cambia entre la demostración y tus proyectos. La demostración no se puede modificar.</p></div>'+
+ '<div class="box"><div class="row"><h2>'+esc(DEMO.name)+'</h2><span class="pill warn">Demostración</span></div><p class="small">Datos simulados: '+num(DEMO.area)+' m², 4 zonas y 8 sensores. No se puede editar, para que la demostración quede siempre igual.</p><div class="btns"><button data-l="loc-use" data-id="demo" aria-pressed="'+(S.cur==='demo')+'">'+(S.cur==='demo'?'En uso':'Usar esta')+'</button></div></div>';
+ if(!S.locs.length) h+='<div class="box flat"><p class="sub" style="font-size:14px">Aún no agregas ubicaciones propias.</p></div>';
+ S.locs.forEach(function(l){h+='<div class="box"><div class="row"><h2>'+esc(l.name)+'</h2><span class="pill ok">Mi proyecto</span></div><p class="small">'+esc(l.type)+(l.addr?' · '+esc(l.addr):'')+' · '+num(l.area)+' m² · '+l.zones.length+' zonas · '+sumS(l)+' sensores previstos</p><div class="btns"><button data-l="loc-use" data-id="'+l.id+'" aria-pressed="'+(S.cur===l.id)+'">'+(S.cur===l.id?'En uso':'Usar esta')+'</button><button data-l="loc-edit" data-id="'+l.id+'">Editar</button>'+(S.delId===l.id?'<button data-l="loc-del2" data-id="'+l.id+'">Confirmar eliminar</button>':'<button data-l="loc-del" data-id="'+l.id+'">Eliminar</button>')+'</div></div>';});
+ return h+'<button class="primary" data-l="loc-new">Agregar ubicación</button>';};
+function customInicio(){var L=curLoc(),fc=forecast(),t=fc[0],rp=report(fc),est=has('estandar');return ''+HEAD('Sin sensores aún')+
+ '<div><h1>Buenos días</h1><p class="sub">'+esc(L.name)+' · '+num(L.area)+' m²'+(L.addr?' · '+esc(L.addr):'')+'</p></div>'+
+ '<div class="stats"><div class="stat"><b>'+L.zones.length+'</b><span>Zonas</span></div><div class="stat"><b>'+sumS(L)+'</b><span>Sensores previstos</span></div><div class="stat"><b>'+num(L.area)+'</b><span>m² regados</span></div></div>'+
+ '<div class="box"><span class="sec">Estado del proyecto</span><p style="font-size:15px">En planificación. Todavía no hay sensores conectados, por eso no se muestran lecturas de humedad ni alertas.</p></div>'+
+ (est?'<div class="hero"><p class="mut">Ahorro de agua estimado esta semana</p><p class="big">'+num(rp.saved)+' L</p><p class="mut">Estimación para '+num(L.area)+' m² con los supuestos del reporte. No es una medición.</p></div>':lockBox('Ahorro de agua estimado','Con Estándar ves cuánta agua podrías ahorrar cada semana según el tamaño de tu jardín y el pronóstico.','estandar'))+
+ '<a class="box" href="#clima" style="text-decoration:none;color:inherit"><span class="sec">Hoy en Valparaíso</span><div class="wx-now" style="gap:12px">'+icon(t.k)+'<div><b style="font-size:20px">'+t.tmin+'° a '+t.tmax+'°</b>'+(t.real?'<p class="sub" style="font-size:14px">'+t.c+'</p>':'')+'</div></div></a>'+
+ '<div class="box"><span class="sec">Zonas</span>'+L.zones.map(function(z){return '<div class="row" style="min-height:40px;border-top:1px solid var(--line)"><span style="font-size:15px">'+esc(z.n)+'</span><span class="small">'+z.s+' sensores</span></div>'}).join('')+'</div>'+
+ '<a class="btn" href="#ubicaciones">Editar o cambiar ubicación</a>';}
+function customZonas(){var L=curLoc();return ''+HEAD('Sin sensores aún')+'<div><h1>Zonas de riego</h1><p class="sub">'+esc(L.name)+' · '+num(L.area)+' m² repartidos en '+L.zones.length+' zonas.</p></div>'+
+ L.zones.map(function(z){return '<div class="box"><div class="row"><h2>'+esc(z.n)+'</h2><span class="pill none">Sin sensores</span></div><p class="small">'+z.s+' sensores previstos</p><p class="sub" style="font-size:14px">Cuando se instalen los sensores, aquí verás la humedad y los controles de riego de esta zona.</p></div>'}).join('')+'<a class="btn" href="#ubicaciones">Editar zonas</a>';}
+var _i=V.inicio,_z=V.zonas,_a=V.alertas;
+V.inicio=_i;V.zonas=_z;V.alertas=_a;
+var appEl=document.getElementById('app');
+appEl.addEventListener('click',function(e){var b=e.target.closest('[data-l]');if(!b)return;var a=b.dataset.l,id=b.dataset.id;
+ if(a==='loc-use'){S.cur=id;applyCur();persistLocs();S.delId=null;render(true);return}
+ if(a==='loc-new'){if(S.locs.length>=5){return}S.draft=newDraft(null);render(true);return}
+ if(a==='loc-edit'){S.draft=newDraft(S.locs.filter(function(l){return l.id===id})[0]);render(true);return}
+ if(a==='loc-del'){S.delId=id;render(true);return}
+ if(a==='loc-del2'){S.locs=S.locs.filter(function(l){return l.id!==id});if(S.cur===id){S.cur='demo'}applyCur();persistLocs();S.delId=null;render(true);return}
+ if(a==='loc-cancel'){S.draft=null;render(true);return}
+ if(a==='zone-add'){syncDraft();S.draft.zones.push({n:'Zona '+(S.draft.zones.length+1),s:'2'});render(true);return}
+ if(a==='zone-rm'){syncDraft();S.draft.zones.splice(+b.dataset.i,1);render(true);return}
+ if(a==='loc-save'){syncDraft();var d=S.draft,msg=document.getElementById('d-msg'),name=(d.name||'').trim(),area=pnum(d.area);
+  if(!name){msg.textContent='Escribe un nombre para la ubicación.';return}
+  if(!(area>0)){msg.textContent='Escribe la superficie regada en metros cuadrados.';return}
+  var zs=d.zones.map(function(z,i){var s=parseInt(z.s,10);return {n:(z.n||'').trim()||('Zona '+(i+1)),s:(isFinite(s)&&s>=0)?s:2}});
+  var loc={id:d.id||('l'+Date.now()),name:name,type:d.type||'Otro',addr:(d.addr||'').trim(),area:area,zones:mkZones(zs)},found=false;
+  S.locs=S.locs.map(function(l){if(l.id===loc.id){found=true;return loc}return l});if(!found)S.locs.push(loc);
+  S.cur=loc.id;applyCur();persistLocs();S.draft=null;render(true);}
+});
+appEl.addEventListener('input',function(e){if(e.target.closest&&e.target.closest('#locform'))syncDraft();});
+/* ===== Soporte 24/7 (Premium) y teléfono para avisos ===== */
+var SUPPORT_PHONE='';
+S.phone='';S.phoneDraft=undefined;S.sosOpen=false;S.sosType='';
+try{S.phone=localStorage.getItem('sira-phone')||''}catch(e){}
+function supMsg(){var L=curLoc(),bad=S.zones.filter(function(z){return zst(z)[1]==='bad'}).map(function(z){return z.n});return 'SIRA · Emergencia en '+L.name+'. Problema: '+(S.sosType||'por indicar')+'.'+(bad.length?' Zonas con alerta: '+bad.join(', ')+'.':'')+(S.phone?' Contacto: '+S.phone+'.':'');}
+function supportBlock(){
+ if(!has('premium'))return lockBox('Emergencia · Soporte técnico 24/7','Con Premium tienes un botón de emergencia con soporte las 24 horas, todos los días. El plan Básico incluye soporte base.','premium');
+ var types=['Fuga grave','Válvula no cierra','Sensor sin señal','Otro problema'];
+ return '<div class="box" style="border:2px solid var(--bad-fg)"><button data-s="sos-toggle" aria-expanded="'+S.sosOpen+'" style="width:100%;background:var(--bad-bg);color:var(--bad-fg);border-color:var(--bad-fg)">Emergencia · Llamar a soporte 24/7</button>'+
+ (S.sosOpen?'<p style="font-size:15px">Número de soporte 24/7: <b>'+(SUPPORT_PHONE||'[número de soporte por definir]')+'</b></p>'+
+ '<span class="sec">¿Qué está pasando?</span><div class="btns">'+types.map(function(t){return '<button data-s="sos-type" data-id="'+t+'" aria-pressed="'+(S.sosType===t)+'">'+t+'</button>'}).join('')+'</div>'+
+ '<p class="small">Mensaje para el técnico</p><div class="box flat" style="font-size:14px">'+esc(supMsg())+'</div>'+
+ '<div class="btns"><button data-s="copy" class="primary">Copiar mensaje y número</button></div>'+
+ '<p class="small" role="status" id="cp-msg">En esta demostración la app no hace la llamada ni envía el mensaje. Cópialo y llama o escribe al número de soporte.</p>':'')+'</div>';}
+appEl.addEventListener('input',function(e){if(e.target.id==='ph')S.phoneDraft=e.target.value;});
+appEl.addEventListener('click',function(e){var b=e.target.closest('[data-s]');if(!b)return;var a=b.dataset.s;
+ if(a==='sos-toggle'){S.sosOpen=!S.sosOpen;render(true);return}
+ if(a==='sos-type'){S.sosType=b.dataset.id;render(true);return}
+ if(a==='copy'){var txt=supMsg()+(SUPPORT_PHONE?' Teléfono de soporte: '+SUPPORT_PHONE:''),m=document.getElementById('cp-msg');
+  try{navigator.clipboard.writeText(txt).then(function(){if(m)m.textContent='Mensaje copiado.'},function(){if(m)m.textContent='No se pudo copiar. Selecciona el texto y cópialo.'})}catch(err){if(m)m.textContent='No se pudo copiar. Selecciona el texto y cópialo.'}return}
+ if(a==='phone-save'){var v=String(S.phoneDraft!==undefined?S.phoneDraft:S.phone).trim(),digits=v.replace(/\D/g,''),msg=document.getElementById('ph-msg');
+  if(digits.length<8||digits.length>15){if(msg)msg.textContent='Escribe un número válido, por ejemplo +56 9 1234 5678.';return}
+  S.phone=v;S.phoneDraft=undefined;try{localStorage.setItem('sira-phone',v)}catch(err){}render(true);}
+});
+var LIVE={inicio:1,zonas:1,alertas:1};
+function route(){var h=(location.hash||'#inicio').slice(1);return V[h]?h:'inicio'}
+var app=document.getElementById('app'), tabs=document.getElementById('tabs'), cur='';
+function render(force){var r=route();
+ tabs.innerHTML=ORD.map(function(k){return TABS.filter(function(t){return t[0]===k})[0]}).map(function(t){var u=unread(),d=t[0]==='alertas'&&u>0?'<span class="dot" aria-label="'+u+' nuevas">'+u+'</span>':'';
+  return '<a href="#'+t[0]+'"'+(t[0]===r?' aria-current="page"':'')+'><svg viewBox="0 0 24 24" aria-hidden="true">'+t[2]+'</svg>'+t[1]+d+'</a>';}).join('');
+ var ae=document.activeElement;
+ if(!force&&((ae&&ae.tagName==='INPUT')||!LIVE[r])) return;
+ var html=V[r]();if(r==='inicio')html=html.replace('</a></div></div>',function(m){return m+supportBlock()});app.innerHTML=(r==='ubicaciones'?'':locBar())+html;
+ if(r!==cur){window.scrollTo(0,0);cur=r}
+}
+window.addEventListener('hashchange',function(){render(true)});
+app.addEventListener('click',function(e){var b=e.target.closest('[data-a]');if(!b)return;var a=b.dataset.a,i=+b.dataset.i;
+ if(a==='water'){S.zones[i].w=!S.zones[i].w;S.zones[i].by=S.zones[i].w?'manual':''}
+ if(a==='auto'){S.zones[i].auto=!S.zones[i].auto}
+ if(a==='rain'){S.forceRain=!S.forceRain}
+ if(a==='read'){S.read[b.dataset.id]=1;save()}
+ if(a==='ch'){S.ch[b.dataset.id]=!S.ch[b.dataset.id];save()}
+ if(a==='plan'){S.plan=b.dataset.id;save()}
+ if(a==='range'){S.range=b.dataset.id}
+ render(true);});
+app.addEventListener('change',function(e){var t=e.target;if(t.name==='plan'){S.plan=t.value;save();render(true)}else if(t.dataset&&t.dataset.as){var v=parseFloat(String(t.value).replace(',','.'));if(isFinite(v)&&v>=0){S.as[t.dataset.as]=v}render(true)}});
+app.addEventListener('submit',function(e){e.preventDefault();if(e.target.id==='demo'){var n=document.getElementById('nm').value.trim(),c=document.getElementById('ct').value.trim();if(!n||!c){e.target.querySelector('[role=status]').textContent='Escribe tu nombre y un teléfono o correo.';return}S.sent=n;save();render(true)}});
+setInterval(function(){var f0=forecast()[0];S.zones.forEach(function(z){
+ if(z.nodata)return; if(z.w){z.h=Math.min(95,z.h+3)} else if(f0.pop>=60){if(z.h<78)z.h=Math.min(78,z.h+2)} else {z.h=Math.max(10,z.h-0.4)}
+ if(z.w&&z.by==='auto'&&z.h>=z.max){z.w=false;z.by=''} if(z.w&&z.h>=95){z.w=false;z.by=''}
+ if(!z.w&&z.auto&&z.h<z.min&&(f0.dec.f>0||!has('estandar'))){z.w=true;z.by='auto'}});
+ render(false);},3000);
+render(true);
+})();
+</script>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}</script>
+</body>
+</html>
