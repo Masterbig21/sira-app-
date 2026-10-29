@@ -51,8 +51,9 @@ h2{font-family:var(--display);font-size:19px;line-height:1.25}
 .hero-row{display:flex;gap:16px;align-items:center}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .stat{background:var(--surface);border-radius:16px;padding:14px 6px;min-width:0;text-align:center;color:var(--ink);text-decoration:none;display:block}
-.stat b{display:block;font-family:var(--display);font-size:clamp(18px,5.4vw,26px);line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.stat b{display:block;font-family:var(--display);font-size:clamp(15px,4.4vw,24px);line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .stat b.nw{white-space:nowrap;overflow-wrap:normal}
+.stat b .u{font-size:.62em;font-style:normal;font-weight:600}
 .stat span{font-size:13px;color:var(--muted)}
 .box{background:var(--surface);border-radius:18px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
 .box.flat{background:var(--card);border:1px solid var(--line)}
@@ -257,7 +258,7 @@ V._full=function(){var fc=forecast(),t=fc[0],n=unread(),rp=report(fc),r0=rp.rows
  '<div><h1>Buenos días</h1><p class="sub">'+esc(curLoc().name)+' · '+num(curLoc().area)+' m²</p></div>'+
  '<div class="hero"><div class="btns" role="group" aria-label="Periodo">'+[['hoy','Hoy'],['semana','Semana'],['mes','Mes']].map(function(x){return '<button data-a="range" data-id="'+x[0]+'" aria-pressed="'+(R===x[0])+'" style="min-height:40px;padding:6px 14px;border-color:var(--hero-hi);'+(R===x[0]?'background:var(--hero-hi);color:#1C2B21':'color:var(--hero-hi)')+'">'+x[1]+'</button>'}).join('')+'</div>'+
  '<p class="mut">Agua ahorrada '+lab+'</p><p class="big">'+num(L)+' L</p><p class="mut">'+pct+'% menos que un riego tradicional con temporizador.</p></div>'+
- '<div class="stats"><div class="stat"><b class="nw">'+money(din)+'</b><span>Agua en dinero</span></div><div class="stat"><b>'+fm(kwh)+' kWh</b><span>Luz de la bomba · '+money(luz)+'</span></div><div class="stat"><b>'+pct+'%</b><span>Menos agua</span></div></div>'+
+ '<div class="stats"><div class="stat"><b class="nw">'+money(din)+'</b><span>Agua en dinero</span></div><div class="stat"><b class="nw">'+fm(kwh)+' <i class="u">kWh</i></b><span>Luz de la bomba · '+money(luz)+'</span></div><div class="stat"><b>'+pct+'%</b><span>Menos agua</span></div></div>'+
  '<div class="box"><div class="hero-row" style="gap:14px"><svg width="84" height="84" viewBox="0 0 84 84" role="img" aria-label="'+opt+' de '+S.zones.length+' zonas en rango"><circle cx="42" cy="42" r="30" fill="none" stroke="var(--card)" stroke-width="10"/><circle cx="42" cy="42" r="30" fill="none" stroke="var(--bar)" stroke-width="10" stroke-linecap="round" stroke-dasharray="'+(C*opt/S.zones.length)+' '+C+'" transform="rotate(-90 42 42)"/><text x="42" y="48" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)" font-family="DM Sans">'+opt+'/'+S.zones.length+'</text></svg>'+
  '<div><span class="sec">Zonas en rango</span><p style="font-size:14px">Cuenta las zonas cuya humedad está dentro de su rango óptimo o que se están regando. Las otras necesitan atención.</p></div></div>'+
  S.zones.map(function(z){var s=zst(z);return '<a href="#zonas" style="display:flex;justify-content:space-between;align-items:center;gap:8px;text-decoration:none;color:inherit;min-height:44px;border-top:1px solid var(--line)"><span style="font-size:15px">'+esc(z.n)+'</span><span class="pill '+s[1]+'">'+s[0]+'</span></a>'}).join('')+'</div>'+
