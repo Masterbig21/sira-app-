@@ -126,10 +126,11 @@ var TABS=[['inicio','Inicio','<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/
 ['clima','Clima','<path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5 3.5 3.5 0 0 1 17.5 18z"/>'],
 ['alertas','Alertas','<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/>'],
 ['planes','Planes','<path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>']];
+var REFS=8;function fee(p,n){return p.b+p.v*n}
 var PLANS=[
- {id:'basico',n:'Básico',p:95000,f:['Riego automático por sensores','Monitoreo remoto de zonas','Soporte base']},
- {id:'estandar',n:'Estándar',p:103000,f:['Todo lo del Básico','Pronóstico a 7 días con riego automático','Alertas por SMS o WhatsApp']},
- {id:'premium',n:'Premium',p:201000,f:['Todo lo del Estándar','Reportes de ahorro y ESG','SLA y soporte 24/7']}];
+ {id:'basico',n:'Básico',b:40000,v:5000,f:['Riego automático por sensores','Monitoreo remoto de zonas','Soporte base']},
+ {id:'estandar',n:'Estándar',b:55000,v:6000,f:['Todo lo del Básico','Pronóstico a 7 días con riego automático','Alertas por SMS o WhatsApp']},
+ {id:'premium',n:'Premium',b:70000,v:10000,f:['Todo lo del Estándar','Reportes de ahorro y ESG','SLA y soporte 24/7']}];
 var RANK={basico:1,estandar:2,premium:3};
 var MATRIX=[['Riego automático por sensores',1,1,1],['Monitoreo remoto de zonas',1,1,1],['Clima actual',1,1,1],['Pronóstico a 7 días',0,1,1],['Riego que se ajusta a la lluvia',0,1,1],['Alertas por SMS o WhatsApp',0,1,1],['Reporte de ahorro de agua',0,0,1],['Reporte ESG',0,0,1],['SLA y soporte 24/7',0,0,1]];
 var DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -223,8 +224,8 @@ reportes:function(){var fc=forecast(),rp=report(fc);if(!has('premium')) return H
  '<div class="box flat"><svg class="chart" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Litros por día, riego tradicional contra SIRA"><line x1="10" y1="130" x2="'+(W-10)+'" y2="130" stroke="var(--line)"/><text x="10" y="14">Litros por día</text>'+bars+'</svg><div class="legend"><span><i style="background:var(--trad)"></i>Riego tradicional</span><span><i style="background:var(--bar)"></i>SIRA</span></div></div>'+
  '<div class="box"><span class="sec">Reporte ESG</span><p style="font-size:15px">Esta sección reúne el agua ahorrada, la cantidad de alertas atendidas y la evidencia de monitoreo para certificaciones ambientales.</p><p class="small">Supuestos de ejemplo: '+num(curLoc().area)+' m², 4 L/m² por riego, riego tradicional en días alternos y riego por sensores equivalente al 70% del tradicional. Se reemplazan con datos medidos en un piloto real.</p></div>';},
 planes:function(){var pl=PLANS.filter(function(p){return p.id===S.plan})[0];return ''+HEAD('Precios referenciales')+
- '<div><h1>Elige tu plan</h1><p class="sub">Al elegir uno, la app activa lo que ese plan incluye.</p></div>'+
- '<form id="planform" style="display:flex;flex-direction:column;gap:12px">'+PLANS.map(function(p){return '<label class="plan"><input type="radio" name="plan" value="'+p.id+'"'+(p.id===S.plan?' checked':'')+'><span style="flex:1"><span class="row"><b style="font-family:var(--display);font-size:20px">'+p.n+'</b><span class="price">'+money(p.p)+'<span class="small">/mes</span></span></span><ul>'+p.f.map(function(f){return '<li>'+f+'</li>'}).join('')+'</ul></span></label>';}).join('')+'</form>'+
+ '<div><h1>Elige tu plan</h1><p class="sub">El precio es una base más un valor por sensor. Abajo lo ves con 8 sensores; el cotizador calcula el tuyo.</p></div>'+
+ '<form id="planform" style="display:flex;flex-direction:column;gap:12px">'+PLANS.map(function(p){return '<label class="plan"><input type="radio" name="plan" value="'+p.id+'"'+(p.id===S.plan?' checked':'')+'><span style="flex:1"><span class="row"><b style="font-family:var(--display);font-size:20px">'+p.n+'</b><span class="price">'+money(fee(p,REFS))+'<span class="small">/mes</span></span></span><span class="small">'+REFS+' sensores · base '+money(p.b)+' + '+money(p.v)+' por sensor</span><ul>'+p.f.map(function(f){return '<li>'+f+'</li>'}).join('')+'</ul></span></label>';}).join('')+'</form>'+
  '<div class="box"><span class="sec">Qué incluye cada plan</span><div class="tablewrap"><table><thead><tr><th></th>'+PLANS.map(function(p){return '<th'+(p.id===S.plan?' class="cur"':'')+'>'+p.n+'</th>'}).join('')+'</tr></thead><tbody>'+
  MATRIX.map(function(r){return '<tr><td>'+r[0]+'</td>'+[1,2,3].map(function(i){return '<td>'+(r[i]?'<span class="y" aria-label="Incluido">✓</span>':'<span class="n" aria-label="No incluido">–</span>')+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div></div>'+
  quoteBox(pl)+
@@ -387,14 +388,14 @@ var UC={sens:25000,valv:35000,nodo:90000,cable:14,hora:8000,trasl:50000,garantia
 function getQ(){var L=curLoc();if(!S.q||S.q.loc!==S.cur){S.q={loc:S.cur,area:L.area,sens:S.zones.reduce(function(a,z){return a+(parseInt(z.s,10)||0)},0)||8,valv:S.zones.length||4,team:false}}return S.q}
 function quoteCalc(pl){var q=getQ(),area=Math.max(0,q.area||0),sens=Math.max(0,Math.round(q.sens||0)),valv=Math.max(1,Math.round(q.valv||1)),nodos=Math.max(1,Math.ceil(valv/4)),
  cS=sens*UC.sens,cV=valv*UC.valv,cN=nodos*UC.nodo,cC=area*UC.cable,hw=cS+cV+cN+cC,horas=4+1.5*valv+0.75*sens,cL=horas*UC.hora,cT=UC.trasl,cG=hw*UC.garantia,cost=hw+cL+cT+cG,
- price=Math.ceil(cost/(1-UC.margen-UC.comision)/1000)*1000,monthly=pl.p+Math.max(0,nodos-1)*UC.extraNodo,
+ price=Math.ceil(cost/(1-UC.margen-UC.comision)/1000)*1000,monthly=fee(pl,sens),
  ahorro=area*UC.m3m2*UC.ahorro*S.as.agua,net=ahorro-monthly;
  return {area:area,sens:sens,valv:valv,nodos:nodos,cS:cS,cV:cV,cN:cN,cC:cC,hw:hw,horas:horas,cL:cL,cT:cT,cG:cG,cost:cost,price:price,monthly:monthly,ahorro:ahorro,net:net,payback:net>0?price/net:null};}
 function quoteOut(){var pl=PLANS.filter(function(p){return p.id===S.plan})[0],c=quoteCalc(pl),q=getQ();
  var h='<p style="font-size:14px">Incluye <b>'+c.sens+' sensores</b> de humedad con batería solar, <b>'+c.valv+' electroválvulas</b>, <b>'+c.nodos+' nodo'+(c.nodos>1?'s':'')+' controlador'+(c.nodos>1?'es':'')+'</b> con ESP32 y comunicación LoRaWAN o NB-IoT, cableado y tuberías menores, e instalación y puesta en marcha (unas '+fm(c.horas)+' horas de técnico).</p>'+
  '<div class="row"><span>Pago inicial (instalación)</span><b>'+money(c.price)+'</b></div>'+
  '<div class="row"><span>Mensualidad plan '+pl.n+'</span><b>'+money(c.monthly)+'</b></div>'+
- (c.nodos>1?'<p class="small">Incluye '+(c.nodos-1)+' nodo'+(c.nodos>2?'s':'')+' adicional'+(c.nodos>2?'es':'')+' a '+money(UC.extraNodo)+' al mes cada uno (conectividad).</p>':'')+
+ '<p class="small">Mensualidad = base '+money(pl.b)+' + '+money(pl.v)+' por sensor × '+c.sens+' sensores.</p>'+
  '<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><span>Primer mes (instalación + mensualidad)</span><b>'+money(c.price+c.monthly)+'</b></div>'+
  '<div class="row"><span>Primer año (instalación + 12 mensualidades)</span><b>'+money(c.price+12*c.monthly)+'</b></div>'+
  '<div class="box flat"><span class="sec">Recuperación con el ahorro de agua</span><p style="font-size:14px">Ahorro estimado: <b>'+money(c.ahorro)+'</b> al mes ('+num(c.area*UC.m3m2)+' m³ de riego al mes, '+Math.round(UC.ahorro*100)+'% de ahorro y agua a '+money(S.as.agua)+' el m³). Después de pagar la mensualidad quedan <b>'+money(c.net)+'</b> al mes.</p><p style="font-size:14px"><b>'+(c.payback?'Recuperas el pago inicial en unos '+fm(c.payback)+' meses.':'Con estos supuestos el ahorro no alcanza a cubrir la mensualidad.')+'</b></p><p class="small">Supuestos de ejemplo: 0,12 m³ de riego por m² al mes y 25% de ahorro. Se validan con una boleta de agua real y un piloto.</p></div>';

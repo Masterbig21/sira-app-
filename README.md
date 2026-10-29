@@ -15,11 +15,11 @@ Prototipo de la app móvil de **SIRA**, una empresa en formación que ofrece rie
 
 ## Planes (precios referenciales)
 
-| Plan | Mensual | Incluye |
-|---|---|---|
-| Básico | $95.000 | Riego automático, monitoreo remoto, soporte base |
-| Estándar | $103.000 | Todo lo del Básico, pronóstico, alertas, app |
-| Premium | $201.000 | Todo lo del Estándar, reportes de ahorro y ESG, SLA y soporte 24/7 |
+| Plan | Base | Por sensor | Con 8 sensores | Incluye |
+|---|---|---|---|---|
+| Básico | $40.000 | $5.000 | $80.000 | Riego automático, monitoreo remoto, soporte base |
+| Estándar | $55.000 | $6.000 | $103.000 | Todo lo del Básico, pronóstico, alertas, app |
+| Premium | $70.000 | $10.000 | $150.000 | Todo lo del Estándar, reportes de ahorro y ESG, SLA y soporte 24/7 |
 
 Los precios son supuestos que se validan con entrevistas y cotizaciones reales.
 
