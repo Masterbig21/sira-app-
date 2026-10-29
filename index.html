@@ -227,7 +227,7 @@ planes:function(){var pl=PLANS.filter(function(p){return p.id===S.plan})[0];retu
  '<form id="planform" style="display:flex;flex-direction:column;gap:12px">'+PLANS.map(function(p){return '<label class="plan"><input type="radio" name="plan" value="'+p.id+'"'+(p.id===S.plan?' checked':'')+'><span style="flex:1"><span class="row"><b style="font-family:var(--display);font-size:20px">'+p.n+'</b><span class="price">'+money(p.p)+'<span class="small">/mes</span></span></span><ul>'+p.f.map(function(f){return '<li>'+f+'</li>'}).join('')+'</ul></span></label>';}).join('')+'</form>'+
  '<div class="box"><span class="sec">Qué incluye cada plan</span><div class="tablewrap"><table><thead><tr><th></th>'+PLANS.map(function(p){return '<th'+(p.id===S.plan?' class="cur"':'')+'>'+p.n+'</th>'}).join('')+'</tr></thead><tbody>'+
  MATRIX.map(function(r){return '<tr><td>'+r[0]+'</td>'+[1,2,3].map(function(i){return '<td>'+(r[i]?'<span class="y" aria-label="Incluido">✓</span>':'<span class="n" aria-label="No incluido">–</span>')+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div></div>'+
- '<div class="box"><div class="row"><span>Plan elegido</span><b>'+pl.n+' · '+money(pl.p)+'/mes</b></div><div class="row"><span>Instalación (pago inicial)</span><b>'+money(1234000)+'</b></div><p class="small">Valores referenciales, por validar con clientes y cotizaciones.</p></div>'+
+ quoteBox(pl)+
  '<form id="demo" class="box" novalidate><h2>Solicitar una demostración</h2>'+
  '<label class="f" for="nm">Nombre<input type="text" id="nm" autocomplete="name"></label>'+
  '<label class="f" for="ct">Teléfono o correo<input type="text" id="ct" autocomplete="off"></label>'+
@@ -381,6 +381,35 @@ function loadWx(){if(!window.fetch)return;fetch(WX_URL).then(function(r){if(!r.o
  for(var n=0;n<12&&idx+n<j.hourly.time.length;n++){var q=idx+n,w2=wmo(j.hourly.weather_code[q]);hours.push({h:j.hourly.time[q].slice(11,16),t:Math.round(j.hourly.temperature_2m[q]),p:j.hourly.precipitation_probability[q]||0,k:w2.k})}
  LIVEWX={days:days,hours:hours,cur:{t:Math.round(j.current.temperature_2m),hum:Math.round(j.current.relative_humidity_2m),wind:Math.round(j.current.wind_speed_10m),uv:Math.round(j.hourly.uv_index[idx]||0)},at:new Date()};
  var ae=document.activeElement;if(!(ae&&ae.tagName==='INPUT'))render(true);}).catch(function(){});}
+
+/* ===== Cotizador de instalación: sensores, válvulas, nodos ESP32, cableado y mano de obra ===== */
+var UC={sens:25000,valv:35000,nodo:90000,cable:14,hora:8000,trasl:50000,garantia:0.05,margen:0.35,comision:0.08,extraNodo:5400,m3m2:0.12,ahorro:0.25};
+function getQ(){var L=curLoc();if(!S.q||S.q.loc!==S.cur){S.q={loc:S.cur,area:L.area,sens:S.zones.reduce(function(a,z){return a+(parseInt(z.s,10)||0)},0)||8,valv:S.zones.length||4,team:false}}return S.q}
+function quoteCalc(pl){var q=getQ(),area=Math.max(0,q.area||0),sens=Math.max(0,Math.round(q.sens||0)),valv=Math.max(1,Math.round(q.valv||1)),nodos=Math.max(1,Math.ceil(valv/4)),
+ cS=sens*UC.sens,cV=valv*UC.valv,cN=nodos*UC.nodo,cC=area*UC.cable,hw=cS+cV+cN+cC,horas=4+1.5*valv+0.75*sens,cL=horas*UC.hora,cT=UC.trasl,cG=hw*UC.garantia,cost=hw+cL+cT+cG,
+ price=Math.ceil(cost/(1-UC.margen-UC.comision)/1000)*1000,monthly=pl.p+Math.max(0,nodos-1)*UC.extraNodo,
+ ahorro=area*UC.m3m2*UC.ahorro*S.as.agua,net=ahorro-monthly;
+ return {area:area,sens:sens,valv:valv,nodos:nodos,cS:cS,cV:cV,cN:cN,cC:cC,hw:hw,horas:horas,cL:cL,cT:cT,cG:cG,cost:cost,price:price,monthly:monthly,ahorro:ahorro,net:net,payback:net>0?price/net:null};}
+function quoteOut(){var pl=PLANS.filter(function(p){return p.id===S.plan})[0],c=quoteCalc(pl),q=getQ();
+ var h='<p style="font-size:14px">Incluye <b>'+c.sens+' sensores</b> de humedad con batería solar, <b>'+c.valv+' electroválvulas</b>, <b>'+c.nodos+' nodo'+(c.nodos>1?'s':'')+' controlador'+(c.nodos>1?'es':'')+'</b> con ESP32 y comunicación LoRaWAN o NB-IoT, cableado y tuberías menores, e instalación y puesta en marcha (unas '+fm(c.horas)+' horas de técnico).</p>'+
+ '<div class="row"><span>Pago inicial (instalación)</span><b>'+money(c.price)+'</b></div>'+
+ '<div class="row"><span>Mensualidad plan '+pl.n+'</span><b>'+money(c.monthly)+'</b></div>'+
+ (c.nodos>1?'<p class="small">Incluye '+(c.nodos-1)+' nodo'+(c.nodos>2?'s':'')+' adicional'+(c.nodos>2?'es':'')+' a '+money(UC.extraNodo)+' al mes cada uno (conectividad).</p>':'')+
+ '<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><span>Primer mes (instalación + mensualidad)</span><b>'+money(c.price+c.monthly)+'</b></div>'+
+ '<div class="row"><span>Primer año (instalación + 12 mensualidades)</span><b>'+money(c.price+12*c.monthly)+'</b></div>'+
+ '<div class="box flat"><span class="sec">Recuperación con el ahorro de agua</span><p style="font-size:14px">Ahorro estimado: <b>'+money(c.ahorro)+'</b> al mes ('+num(c.area*UC.m3m2)+' m³ de riego al mes, '+Math.round(UC.ahorro*100)+'% de ahorro y agua a '+money(S.as.agua)+' el m³). Después de pagar la mensualidad quedan <b>'+money(c.net)+'</b> al mes.</p><p style="font-size:14px"><b>'+(c.payback?'Recuperas el pago inicial en unos '+fm(c.payback)+' meses.':'Con estos supuestos el ahorro no alcanza a cubrir la mensualidad.')+'</b></p><p class="small">Supuestos de ejemplo: 0,12 m³ de riego por m² al mes y 25% de ahorro. Se validan con una boleta de agua real y un piloto.</p></div>';
+ if(q.team){var r=function(a,b){return '<div class="row"><span>'+a+'</span><b>'+money(b)+'</b></div>'},com=c.price*UC.comision,mg=c.price-c.cost-com;
+  h+='<div class="box flat"><span class="sec">Vista del equipo (costos internos)</span>'+r(c.sens+' sensores × '+money(UC.sens),c.cS)+r(c.valv+' electroválvulas × '+money(UC.valv),c.cV)+r(c.nodos+' nodos ESP32 × '+money(UC.nodo),c.cN)+r('Cableado y tuberías ('+money(UC.cable)+' por m²)',c.cC)+r('Mano de obra ('+fm(c.horas)+' h × '+money(UC.hora)+')',c.cL)+r('Traslado',c.cT)+r('Garantía (5% del hardware)',c.cG)+'<div class="row" style="border-top:1px solid var(--line);padding-top:8px"><b>Costo total</b><b>'+money(c.cost)+'</b></div>'+r('Comisión de venta (8% del precio)',com)+'<div class="row"><b>Margen bruto</b><b>'+money(mg)+' ('+Math.round(mg/c.price*100)+'%)</b></div><p class="small">Precios unitarios de ejemplo; el sensor ($25.000) viene del informe del grupo. Se reemplazan con cotizaciones reales.</p></div>';}
+ return h;}
+function quoteBox(pl){var q=getQ();return '<div class="box"><span class="sec">Cotiza tu instalación</span><p class="sub" style="font-size:14px">Cambia las cantidades y el total se recalcula. Parten con las medidas de la ubicación activa.</p>'+
+ '<label class="f" for="q-area">Superficie regada (m²)<input type="text" inputmode="numeric" id="q-area" value="'+num(q.area)+'" autocomplete="off"></label>'+
+ '<label class="f" for="q-sens">Sensores de humedad<input type="text" inputmode="numeric" id="q-sens" value="'+q.sens+'" autocomplete="off"></label>'+
+ '<label class="f" for="q-valv">Electroválvulas (una por zona)<input type="text" inputmode="numeric" id="q-valv" value="'+q.valv+'" autocomplete="off"></label>'+
+ '<div id="q-out" style="display:flex;flex-direction:column;gap:10px">'+quoteOut()+'</div>'+
+ '<button data-q="team" aria-pressed="'+q.team+'">'+(q.team?'Ocultar vista del equipo':'Ver vista del equipo (costos)')+'</button>'+
+ '<p class="small">Valores referenciales, por validar con clientes y cotizaciones.</p></div>';}
+appEl.addEventListener('input',function(e){var id=e.target.id;if(id==='q-area'||id==='q-sens'||id==='q-valv'){var q=getQ(),v=pnum(e.target.value);if(!isFinite(v))v=0;if(id==='q-area')q.area=v;if(id==='q-sens')q.sens=v;if(id==='q-valv')q.valv=v;var o=document.getElementById('q-out');if(o)o.innerHTML=quoteOut();}});
+appEl.addEventListener('click',function(e){var b=e.target.closest('[data-q]');if(!b)return;if(b.dataset.q==='team'){var q=getQ();q.team=!q.team;render(true)}});
 var LIVE={inicio:1,zonas:1,alertas:1};
 function route(){var h=(location.hash||'#inicio').slice(1);return V[h]?h:'inicio'}
 var app=document.getElementById('app'), tabs=document.getElementById('tabs'), cur='';
