@@ -134,6 +134,7 @@ var RANK={basico:1,estandar:2,premium:3};
 var MATRIX=[['Riego automático por sensores',1,1,1],['Monitoreo remoto de zonas',1,1,1],['Clima actual',1,1,1],['Pronóstico a 7 días',0,1,1],['Riego que se ajusta a la lluvia',0,1,1],['Alertas por SMS o WhatsApp',0,1,1],['Reporte de ahorro de agua',0,0,1],['Reporte ESG',0,0,1],['SLA y soporte 24/7',0,0,1]];
 var DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 /* Pronóstico real de Valparaíso, capturado de Meteored el 27-oct-2026. La fuente no entregaba probabilidad de lluvia diaria. */
+var LIVEWX=null;
 var REAL={'2026-10-28':{tmax:20,tmin:12,k:'sol',c:'Soleado'},'2026-10-29':{tmax:19,tmin:13,k:'nube',c:'Neblina'},'2026-10-30':{tmax:20,tmin:15,k:'parcial',c:'Parcialmente nublado'},'2026-10-31':{tmax:20,tmin:16,k:'parcial',c:'Parcialmente nublado'},'2026-11-1':{tmax:21,tmin:14,k:'parcial',c:'Nubes y claros'},'2026-11-2':{tmax:21,tmin:13,k:'parcial',c:'Nubes y claros'}};
 var S={forceRain:false,zones:[
  {n:'Zona 1 · Jardín central',h:62,min:45,max:70,by:'',w:false,auto:true,s:2},
@@ -159,14 +160,15 @@ function forecast(){var d0=new Date(),base=d0.getFullYear()*400+Math.floor((d0-n
  for(var i=0;i<7;i++){var r=rng(base*31+i*7919),d=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+i);
   var tmax=15+Math.round(r()*10),tmin=tmax-6-Math.round(r()*3),pop=r()<0.35?60+Math.round(r()*35):Math.round(r()*45);
   var rl=REAL[d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()];if(rl){tmax=rl.tmax;tmin=rl.tmin;pop=0}
-  if(i===0&&S.forceRain){pop=85;rl=null}
-  var k=rl?rl.k:(pop>=60?'lluvia':pop>=30?'nube':tmax>=23?'sol':'parcial');
+  var lv=LIVEWX&&LIVEWX.days[d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()];if(lv){tmax=lv.tmax;tmin=lv.tmin;pop=lv.pop;rl=null}
+  if(i===0&&S.forceRain){pop=85;rl=null;lv=null}
+  var k=lv?lv.k:rl?rl.k:(pop>=60?'lluvia':pop>=30?'nube':tmax>=23?'sol':'parcial');
   var dec=pop>=60?{t:'Suspendido',f:0,c:'ok'}:pop>=30?{t:'Reducido',f:.5,c:'warn'}:tmax>=24?{t:'Reforzado',f:1.1,c:'warn'}:{t:'Normal',f:1,c:'ok'};
-  out.push({d:i===0?'Hoy':DAYS[d.getDay()],tmax:tmax,tmin:tmin,pop:pop,k:k,dec:dec,real:!!rl,c:rl?rl.c:''});}
+  out.push({d:i===0?'Hoy':DAYS[d.getDay()],tmax:tmax,tmin:tmin,pop:pop,k:k,dec:dec,real:!!rl,live:!!lv,c:lv?lv.c:rl?rl.c:''});}
  return out;}
-function nowWx(f){var h=new Date().getHours()+new Date().getMinutes()/60,t=f.tmin+(f.tmax-f.tmin)*(0.5-0.5*Math.cos((h-4)/24*2*Math.PI*1.0));
+function nowWx(f){if(LIVEWX&&f.live&&LIVEWX.cur)return LIVEWX.cur;var h=new Date().getHours()+new Date().getMinutes()/60,t=f.tmin+(f.tmax-f.tmin)*(0.5-0.5*Math.cos((h-4)/24*2*Math.PI*1.0));
  return {t:Math.round(t),hum:Math.round(85-(t-10)*2.2+(f.pop/10)),wind:8+Math.round(f.pop/12),uv:Math.max(0,Math.round(8*Math.sin(Math.max(0,(h-6.5))/13*Math.PI)))};}
-function hourly(f){var out=[],h0=new Date().getHours();for(var i=0;i<12;i++){var h=(h0+i)%24,t=Math.round(f.tmin+(f.tmax-f.tmin)*(0.5-0.5*Math.cos((h-4)/24*2*Math.PI)));
+function hourly(f){if(LIVEWX&&f.live&&LIVEWX.hours&&LIVEWX.hours.length)return LIVEWX.hours;var out=[],h0=new Date().getHours();for(var i=0;i<12;i++){var h=(h0+i)%24,t=Math.round(f.tmin+(f.tmax-f.tmin)*(0.5-0.5*Math.cos((h-4)/24*2*Math.PI)));
  var p=f.real?0:Math.max(0,Math.min(95,f.pop+((i*37+h*13)%21)-10));out.push({h:(h<10?'0':'')+h+':00',t:t,p:p,k:p>=60?'lluvia':(h<7||h>=20)?'nube':f.pop>=30?'nube':'sol'});}return out;}
 function report(fc){var tr=0,si=0,rows=fc.map(function(x,i){var trad=i%2===0?curLoc().area*4:0,sira=Math.round(trad*0.7*x.dec.f);tr+=trad;si+=sira;return {d:x.d,tr:trad,si:sira};});return {rows:rows,tr:tr,si:si,saved:tr-si,pct:tr?Math.round((tr-si)/tr*100):0};}
 function zst(z){ if(z.nodata) return ['Sin sensores','none']; if(z.w) return [z.by==='auto'?'Regando (auto)':'Regando','ok']; if(z.h>80) return ['Revisar','bad']; if(z.h<z.min){ return (z.auto&&has('estandar')&&forecast()[0].dec.f===0)?['En pausa por lluvia','warn']:['Seca','warn']; } if(z.h>z.max) return ['Húmeda','ok']; return ['Óptima','ok']; }
@@ -202,9 +204,9 @@ clima:function(){var fc=forecast(),t=fc[0],w=nowWx(t),hr=hourly(t);return ''+HEA
  '<div class="box"><div class="row"><span class="sec">Decisión de riego hoy</span><span class="pill '+t.dec.c+'">'+t.dec.t+'</span></div><p style="font-size:15px">'+(t.dec.f===0?'Hay '+t.pop+'% de probabilidad de lluvia. SIRA suspende el riego automático y evita gastar agua.':t.dec.f<1?'Hay '+t.pop+'% de probabilidad de lluvia. SIRA reduce el riego a la mitad.':t.dec.f>1?'Calor de '+t.tmax+'°. SIRA refuerza el riego en las zonas que lo necesiten.':'Sin lluvia prevista. El riego sigue el horario según la humedad del suelo.')+'</p>'+
  '<button data-a="rain" aria-pressed="'+S.forceRain+'">Simular lluvia hoy (demo)</button></div>'+
  '<span class="sec">Próximas horas</span><div class="hours">'+hr.map(function(x){return '<div>'+x.h+icon(x.k)+'<b>'+x.t+'°</b><span style="color:var(--sky)">'+x.p+'%</span></div>'}).join('')+'</div>'+
- '<span class="sec">Próximos 7 días</span>'+fc.map(function(x){return '<div class="day"><b>'+x.d+'</b>'+icon(x.k)+'<span><b>'+x.tmax+'°</b> <span class="sub">'+x.tmin+'°</span> <span class="rain">'+(x.real?x.c:x.pop+'% (sim.)')+'</span></span><span class="pill '+x.dec.c+'">'+x.dec.t+'</span></div>'}).join('')
+ '<span class="sec">Próximos 7 días</span>'+fc.map(function(x){return '<div class="day"><b>'+x.d+'</b>'+icon(x.k)+'<span><b>'+x.tmax+'°</b> <span class="sub">'+x.tmin+'°</span> <span class="rain">'+(x.live?x.pop+'% · '+x.c:x.real?x.c:x.pop+'% (sim.)')+'</span></span><span class="pill '+x.dec.c+'">'+x.dec.t+'</span></div>'}).join('')
  : lockBox('Pronóstico a 7 días y riego que se ajusta a la lluvia','Con Estándar, SIRA lee el pronóstico y suspende o reduce el riego cuando va a llover, además de refuerzarlo en días de calor.','estandar'))+
- '<p class="small">Pronóstico de Valparaíso tomado de Meteored (captura del 27 de octubre, no se actualiza solo). Los días sin captura se simulan. La temperatura de ahora se calcula con la mínima y la máxima del día, y la fuente no entregaba probabilidad de lluvia, por eso se asume sin lluvia. El botón de simulación permite probar el caso de lluvia. En la versión real, un servidor actualiza el pronóstico cada hora.</p>';},
+ '<p class="small">'+(LIVEWX?'Pronóstico en vivo de Valparaíso (Open-Meteo), actualizado a las '+LIVEWX.at.toTimeString().slice(0,5)+' y cada 30 minutos mientras la app esté abierta. Si se cae la conexión, se muestra la última captura. El botón de simulación permite probar el caso de lluvia.':'Pronóstico de Valparaíso tomado de Meteored (captura del 27 de octubre, no se actualiza solo). Los días sin captura se simulan. La temperatura de ahora se calcula con la mínima y la máxima del día, y la fuente no entregaba probabilidad de lluvia, por eso se asume sin lluvia. El botón de simulación permite probar el caso de lluvia.')+'</p>';},
 alertas:function(){return ''+HEAD('Datos de ejemplo')+
  '<div><h1>Alertas</h1><p class="sub">'+(has('estandar')?'Te avisamos por los canales que actives.':'En el plan Básico las alertas se ven solo dentro de la app.')+'</p></div>'+
  (has('estandar')?'<div class="box"><span class="sec">Canales de aviso</span>'+
@@ -369,6 +371,16 @@ appEl.addEventListener('click',function(e){var b=e.target.closest('[data-s]');if
   if(digits.length<8||digits.length>15){if(msg)msg.textContent='Escribe un número válido, por ejemplo +56 9 1234 5678.';return}
   S.phone=v;S.phoneDraft=undefined;try{localStorage.setItem('sira-phone',v)}catch(err){}render(true);}
 });
+
+/* ===== Pronóstico en vivo (Open-Meteo, sin clave). Solo funciona publicada en GitHub Pages; si falla, se usa la captura. ===== */
+var WX_URL='https://api.open-meteo.com/v1/forecast?latitude=-33.05&longitude=-71.61&current=temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=temperature_2m,precipitation_probability,weather_code,uv_index&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=7';
+function wmo(c){if(c===0||c===1)return {k:'sol',c:c===0?'Despejado':'Mayormente despejado'};if(c===2)return {k:'parcial',c:'Parcialmente nublado'};if(c===3)return {k:'nube',c:'Nublado'};if(c===45||c===48)return {k:'nube',c:'Neblina'};if(c>=51&&c<=57)return {k:'lluvia',c:'Llovizna'};if(c>=61&&c<=67)return {k:'lluvia',c:'Lluvia'};if(c>=71&&c<=77)return {k:'nube',c:'Nieve'};if(c>=80&&c<=82)return {k:'lluvia',c:'Chubascos'};if(c>=95)return {k:'lluvia',c:'Tormenta'};return {k:'parcial',c:'Variable'};}
+function loadWx(){if(!window.fetch)return;fetch(WX_URL).then(function(r){if(!r.ok)throw new Error('http');return r.json()}).then(function(j){
+ var days={};j.daily.time.forEach(function(t,i){var p=t.split('-'),w=wmo(j.daily.weather_code[i]);days[(+p[0])+'-'+(+p[1])+'-'+(+p[2])]={tmax:Math.round(j.daily.temperature_2m_max[i]),tmin:Math.round(j.daily.temperature_2m_min[i]),pop:j.daily.precipitation_probability_max[i]||0,k:w.k,c:w.c}});
+ var idx=j.hourly.time.indexOf(j.current.time.slice(0,13)+':00'),hours=[];if(idx<0)idx=0;
+ for(var n=0;n<12&&idx+n<j.hourly.time.length;n++){var q=idx+n,w2=wmo(j.hourly.weather_code[q]);hours.push({h:j.hourly.time[q].slice(11,16),t:Math.round(j.hourly.temperature_2m[q]),p:j.hourly.precipitation_probability[q]||0,k:w2.k})}
+ LIVEWX={days:days,hours:hours,cur:{t:Math.round(j.current.temperature_2m),hum:Math.round(j.current.relative_humidity_2m),wind:Math.round(j.current.wind_speed_10m),uv:Math.round(j.hourly.uv_index[idx]||0)},at:new Date()};
+ var ae=document.activeElement;if(!(ae&&ae.tagName==='INPUT'))render(true);}).catch(function(){});}
 var LIVE={inicio:1,zonas:1,alertas:1};
 function route(){var h=(location.hash||'#inicio').slice(1);return V[h]?h:'inicio'}
 var app=document.getElementById('app'), tabs=document.getElementById('tabs'), cur='';
@@ -398,6 +410,7 @@ setInterval(function(){var f0=forecast()[0];S.zones.forEach(function(z){
  if(!z.w&&z.auto&&z.h<z.min&&(f0.dec.f>0||!has('estandar'))){z.w=true;z.by='auto'}});
  render(false);},3000);
 render(true);
+loadWx();setInterval(loadWx,1800000);
 })();
 </script>
 
